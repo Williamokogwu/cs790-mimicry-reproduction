@@ -1,0 +1,27 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Original research datasets
+*.csv
+*.zip
+
+# Generated model and experiment caches
+*.pth
+*.pt
+
+# Local data
+data/
+datasets/
+
+# LaTeX temporary files
+*.aux
+*.out
+*.toc
+*.synctex.gz
+
+# Other temporary files
+*.log
+*.tmp
