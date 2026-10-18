@@ -1,0 +1,208 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=0.82in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{booktabs,tabularx,longtable,array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{amsmath}
+\definecolor{navy}{HTML}{16365C}
+\definecolor{muted}{HTML}{526274}
+\hypersetup{colorlinks=true,urlcolor=navy,linkcolor=navy}
+\titleformat{\section}{\Large\bfseries\color{navy}}{\thesection.}{0.6em}{}
+\titleformat{\subsection}{\normalsize\bfseries\color{navy}}{\thesubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{15pt}{6pt}
+\titlespacing*{\subsection}{0pt}{10pt}{4pt}
+\setlist[itemize]{leftmargin=1.3em,itemsep=2pt,topsep=3pt}
+\setlist[enumerate]{leftmargin=1.5em,itemsep=3pt,topsep=3pt}
+\pagestyle{fancy}\fancyhf{}\lhead{CS 790 \textbar\ Group 4}\rhead{Project Plan}\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\begin{document}
+\begin{center}
+{\LARGE\bfseries\color{navy} CS 790 Midterm Project Plan}\par\vspace{5pt}
+{\large Reproducing Mimicry Attacks Against Provenance-Based Host Intrusion Detection Systems}\par\vspace{9pt}
+\begin{tabular}{rl}
+\textbf{Group:} & 4 --- Networking\\
+\textbf{Members:} & Chijioke and David\\
+\textbf{Course:} & CS 790 --- Advanced Topics: AI System Development and Security Challenges\\
+\textbf{Instructor:} & Professor Zhen Zeng\\
+\textbf{Deadline:} & Thursday, October 22, 2026, 11:59 PM\\
+\textbf{Status:} & Environment and dataset pilot prepared; detection experiments pending
+\end{tabular}
+\end{center}
+\vspace{4pt}\hrule\vspace{9pt}
+
+\section{Project Overview}
+\subsection{Selected Research Paper}
+\emph{Sometimes, You Aren't What You Do: Mimicry Attacks against Provenance Graph Host Intrusion Detection Systems}, Goyal et al., Network and Distributed System Security Symposium (NDSS), 2023.
+
+The paper studies how attackers can manipulate the behavioral evidence observed by provenance-graph host intrusion detection systems (IDSs). Provenance graphs encode relationships among processes, files, sockets, and system events. A mimicry attack adds benign-looking behavior around malicious activity in an attempt to reduce the likelihood that an IDS flags the resulting graph.
+
+\subsection{Our Reproduction Scope}
+We will reproduce a \textbf{limited evaluation of Pagoda}, one of the IDSs examined in the paper, using the authors' existing implementation and published graph datasets. We are \emph{not} implementing Pagoda from scratch or claiming to reproduce all systems evaluated by the authors.
+
+Our experimental categories are (i) training graphs used to establish normal behavior, (ii) benign testing graphs, (iii) original attack graphs, and (iv) mimicry-evasion graphs. We will compare detection outcomes for the latter three categories under the selected Pagoda configuration. Before treating attack and evasion files as matched pairs, we must verify the pairing specified by the dataset and paper.
+
+\section{Research Objectives and Hypothesis}
+\textbf{Primary objective:} Determine whether mimicry-modified provenance graphs are detected less frequently by Pagoda than the corresponding original malicious graphs.
+
+\textbf{Specific objectives:}
+\begin{itemize}
+\item Explain provenance graphs, host intrusion detection, and the mimicry threat model.
+\item Understand Pagoda's benign-frequency database, path scoring, threshold selection, and graph classification.
+\item Run the original implementation on an explicitly documented, computationally feasible dataset.
+\item Calculate correctly normalized detection and false-positive metrics from the program's output.
+\item Compare the direction and, where appropriate, magnitude of the observed effects with the paper.
+\item Document modifications, runtime limitations, methodological differences, and reproducibility instructions.
+\end{itemize}
+\textbf{Research question:} To what extent does mimicry change Pagoda's detection of malicious provenance graphs?\\
+\textbf{Working hypothesis:} Mimicry-evasion graphs will be detected less often than unmodified attack graphs, under comparable evaluation conditions. This is a prediction, \emph{not} a result of our experiment.
+
+\section{Relevance to CS 790}
+This project connects host cybersecurity, behavioral anomaly detection, adversarial evasion, and graph-based analysis. It demonstrates how a security detector may be vulnerable even when it has visibility into system activity. While our Pagoda reproduction does not require training a large AI model, the underlying problem of adversarially manipulating detector inputs is closely related to broader AI and system-security challenges.
+
+\section{Technical Methodology}
+\subsection{Phase A: Review the Original Method}
+Trace the data flow through the published Pagoda implementation, identify the role of the benign frequency database, explain graph and path anomaly scores, and determine how the code selects its thresholds. Identify the specific Pagoda results in the original paper that are genuinely comparable with our experiment. Record any training/evaluation overlap in the implementation rather than describing the procedure as an independent test if it is not.
+
+\subsection{Phase B: Environment and Software}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+\textbf{Component} & \textbf{Verified setup}\\\midrule
+Operating system & Windows 11\\
+Python & 3.11.9, virtual environment \texttt{.venv}\\
+Libraries & \texttt{torch}, \texttt{pandas}, \texttt{networkx}, \texttt{tqdm} imported successfully\\
+PyTorch & 2.14.1+cpu; CUDA unavailable, CPU execution intended\\
+Hardware & Laptop with 16 GB RAM\\
+Source & \url{https://bitbucket.org/sts-lab/mimicry-provenance-generator}\\\bottomrule
+\end{tabularx}
+
+The repository was cloned and the Pagoda scripts inspected. Relevant modules include \texttt{main.py}, \texttt{freqDBWrapper.py}, \texttt{pathsWrapper.py}, \texttt{thresholdWrapper.py}, and \texttt{calcStatsWrapper.py}. We will preserve original code where feasible and log any compatibility changes.
+
+\subsection{Phase C: Dataset Selection and Validation}
+Two published ZIP archives were inspected without first extracting their full contents. The four directories and available file counts are:
+\begin{center}
+\begin{tabular}{@{}llr@{}}\toprule
+\textbf{Role} & \textbf{Archive directory} & \textbf{CSV files}\\\midrule
+Training & \texttt{tajka/trainGraphs/} & 71\\
+Benign testing & \texttt{tajka/testGraphs/} & 29\\
+Original attacks & \texttt{attackGraphs/} & 100\\
+Mimicry evasion & \texttt{evasion/} & 100\\\bottomrule
+\end{tabular}
+\end{center}
+
+One CSV per category was extracted into \texttt{experiment/train}, \texttt{experiment/benign}, \texttt{experiment/attack}, and \texttt{experiment/evasion}. We read all four successfully with pandas. Some rows omit the final optional fields (8 rather than 10 columns), and pandas warned that \texttt{cmd1} has mixed types. In our four samples, there were no process-to-process events with missing \texttt{cmd1}; full parser compatibility remains to be established by running Pagoda.
+
+\begin{center}
+\begin{tabular}{@{}llr@{}}\toprule
+\textbf{Category} & \textbf{Selected CSV} & \textbf{Events}\\\midrule
+Training & \texttt{output\_ADM-300.csv} & 65,882\\
+Benign testing & \texttt{output\_ADM-370.csv} & 64,716\\
+Original attack & \texttt{output\_ADM-500.csv} & 5,651\\
+Evasion & \texttt{output\_ADM-600.csv} & 121,429\\\bottomrule
+\end{tabular}
+\end{center}
+
+The selected evasion file has about 21.5 times as many recorded events as the selected attack file. This is descriptive only: it does not establish a matched attack/evasion pair or prove that mimicry caused the difference.
+
+\subsection{Phase D: Graph Feasibility Testing}
+We first built approximate directed graphs using entity names, then performed a closer reconstruction using Pagoda's process/PID identity rules. The latter produced the following results for the three reported categories:
+\begin{center}
+\begin{tabular}{@{}lrrl@{}}\toprule
+\textbf{Graph} & \textbf{Nodes} & \textbf{Edges} & \textbf{Directed cycles?}\\\midrule
+Benign & 1,410 & 1,915 & Yes\\
+Attack & 1,169 & 1,442 & Yes\\
+Evasion & 1,508 & 2,337 & Yes\\\bottomrule
+\end{tabular}
+\end{center}
+
+The training-graph structural result was not included in the recorded terminal output. Directed cycles do not inherently prevent NetworkX's \texttt{all\_simple\_paths} from working, but exhaustive path enumeration can be expensive. In a controlled test on the selected attack graph, we successfully enumerated the \textbf{first 1,000 simple paths in approximately 0.08 seconds}, including graph construction. This does not establish the total path count or full-runtime feasibility.
+
+\subsection{Phase E: Execute Pagoda}
+\begin{enumerate}
+\item Verify graph selection and, if needed, the attack--evasion correspondence.
+\item Run a controlled Pagoda pilot with training, benign testing, attack, and evasion inputs; record wall-clock time, package versions, and exact filenames.
+\item Keep per-run cache files separate. The code creates \texttt{.pth} outputs that must not be reused across incompatible datasets.
+\item Diagnose any parser, PyTorch serialization, path-explosion, or threshold issues. Make only justified changes, keeping a record of each change.
+\item Expand to a larger, explicitly selected sample only after the pilot finishes and produces interpretable results.
+\end{enumerate}
+\textbf{Current status:} Pagoda's complete detection pipeline has \emph{not yet} been executed successfully; no detection or evasion measurements have been obtained.
+
+\subsection{Phase F: Evaluate and Compare Results}
+We will record the number of evaluated graphs and the number flagged in each category. For consistent definitions:
+\begin{align*}
+\mathrm{FPR} &= \frac{\text{benign test graphs flagged}}{\text{benign test graphs evaluated}},\\
+\mathrm{TPR} &= \frac{\text{original attack graphs flagged}}{\text{original attack graphs evaluated}},\\
+\mathrm{EvasionDetectionRate} &= \frac{\text{evasion graphs flagged}}{\text{evasion graphs evaluated}}.
+\end{align*}
+A simple evasion non-detection proportion is $1-\mathrm{EvasionDetectionRate}$, but a claim about \emph{successful} evasion may require restricting to correctly matched attacks originally detected by Pagoda. We will follow the paper's definition for any direct comparison.
+
+The existing code prints \emph{counts} labeled \texttt{fpr}, \texttt{tpr}, and \texttt{evasion}; these are not already normalized rates. We will check how the program handles path-level detections and graph-level thresholds before calculating percentages. Numerical comparisons will be limited to conditions that are methodologically comparable.
+
+\section{Completed Work and Outstanding Work}
+\subsection{Completed}
+\begin{itemize}
+\item Selected the NDSS 2023 mimicry-attack paper and agreed on a Pagoda-only technical scope for the proposed reproduction.
+\item Cloned the published repository and reviewed the principal Pagoda scripts.
+\item Set up Python 3.11.9 and verified the CPU-only PyTorch and other dependencies.
+\item Located all four dataset directories and extracted one representative CSV per category.
+\item Inspected CSV structure, event counts, node/edge characteristics, and process-to-process fields.
+\item Successfully completed a limited 1,000-path enumeration test on the attack graph.
+\end{itemize}
+\subsection{Still Outstanding}
+\begin{itemize}
+\item Verify dataset pairing and choose a reproducible experimental sample.
+\item Execute the full Pagoda pipeline on a pilot and, if feasible, an expanded sample.
+\item Capture and validate real detection counts, compute metrics, and compare with the paper.
+\item Draft the required two-page report, package code and README, and prepare the presentation.
+\end{itemize}
+
+\section{Technical Risks and Mitigations}
+\begin{description}[style=nextline,leftmargin=0pt,itemsep=5pt]
+\item[Path enumeration complexity.] The number of simple paths may grow rapidly, even in relatively small graphs. \textbf{Mitigation:} Start with a bounded feasibility assessment and a monitored pilot; do not assume 1,000 fast paths implies a fast full run.
+\item[CSV and identifier compatibility.] Mixed \texttt{cmd1} types and optional fields could trigger parser errors. \textbf{Mitigation:} Validate actual rows and document any necessary fixes.
+\item[Stale cached results.] Existing \texttt{.pth} files may belong to different datasets. \textbf{Mitigation:} Use isolated run directories and record dataset hashes or filenames.
+\item[Software-version differences.] PyTorch loading behavior and library APIs may differ from the authors' environment. \textbf{Mitigation:} Record versions and apply minimal, transparent changes.
+\item[Evaluation design.] Small samples, threshold selection, and unmatched graphs may limit comparisons. \textbf{Mitigation:} Verify the paper's protocol, report denominators, and state limitations explicitly.
+\item[Time and competing coursework.] The deadline overlaps other academic assessments. \textbf{Mitigation:} Aim to finish experimental work early and divide analysis/report responsibilities.
+\end{description}
+
+\section{Proposed Team Responsibilities}
+\textbf{Chijioke --- Implementation and experimentation:} maintain the environment, prepare graph selections, run Pagoda, troubleshoot, capture outputs, and document reproducible commands.\\
+\textbf{David --- Research analysis and documentation:} review the paper's Pagoda methodology, identify comparable published results, validate metric definitions, and prepare the report's background, methods, and discussion.\\
+\textbf{Shared:} agree on scope and dataset selection, verify findings, review the final submission, and prepare the presentation. These are proposed roles and should be confirmed by both members.
+
+\section{Revised Schedule and Milestones}
+\begin{tabularx}{\linewidth}{@{}lX@{}}\toprule
+\textbf{Date} & \textbf{Target}\\\midrule
+Oct. 17--18 & Confirm scope with David; verify pairing; complete feasibility checks; attempt first Pagoda run.\\
+Oct. 19 & Troubleshoot and expand the experiment if feasible; preserve logs and configuration.\\
+Oct. 20 & Compute and validate detection metrics; compare against appropriate published results.\\
+Oct. 21 & Finalize two-page report, source ZIP, README, and presentation outline.\\
+Oct. 22 & Final joint review and submit by \textbf{11:59 PM}.\\\bottomrule
+\end{tabularx}
+
+\section{Deliverables}
+\subsection{Source Code ZIP}
+Relevant Pagoda files, any documented compatibility patches, a README with exact execution steps, experiment configuration or file-selection manifest, and reproducible result logs. We will avoid unnecessarily bundling large original datasets unless required by the assignment.
+\subsection{Final Two-Page Report}
+\textbf{Objective:} question and scope. \textbf{Methodology:} environment, datasets, algorithm, and procedure. \textbf{Results:} actual counts, rates, and comparable paper findings. \textbf{Discussion:} interpretation, limitations, deviations, and lessons learned. \textbf{References:} paper and repository.
+\subsection{Presentation Preparation}
+Explain provenance graphs, mimicry attacks, Pagoda's scoring approach, the reproduced subset, the observed results, and their limitations. Both members should be able to answer questions about the experimental design.
+
+\section{Success Criteria and Final Direction}
+A successful project will (1) explain the research accurately, (2) execute a meaningful and documented subset of the published method, (3) produce reproducible measurements, (4) interpret counts and rates correctly, (5) compare results without overstating equivalence, and (6) submit the required artifacts on time. Differences from the original paper are acceptable if supported by transparent methods and evidence.
+
+Our immediate priority is \textbf{the first complete Pagoda detection run}. All graph statistics and path timings recorded above are preparation results, not evidence of intrusion detection or evasion success.
+
+\section*{References and Resources}
+\begin{enumerate}
+\item Goyal et al. (2023). \emph{Sometimes, You Aren't What You Do: Mimicry Attacks against Provenance Graph Host Intrusion Detection Systems}. NDSS. \url{https://www.ndss-symposium.org/ndss-paper/sometimes-you-arent-what-you-do-mimicry-attacks-against-provenance-graph-host-intrusion-detection-systems/}
+\item Authors' code and datasets. \url{https://bitbucket.org/sts-lab/mimicry-provenance-generator/src/master/}
+\end{enumerate}
+\end{document}
