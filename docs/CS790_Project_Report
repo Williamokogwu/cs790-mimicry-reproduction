@@ -1,0 +1,196 @@
+
+\documentclass[10pt,letterpaper]{article}
+
+\usepackage[margin=0.78in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\setlist{nosep}
+\hypersetup{
+    colorlinks=true,
+    urlcolor=blue,
+    linkcolor=black
+}
+
+\begin{document}
+
+\begin{center}
+    {\Large\bfseries
+    Partial Reproduction of Mimicry Attacks\\
+    Against Pagoda}\\[6pt]
+
+    \textbf{CS 790 -- Group 4 (Networking)}\\
+    \textbf{Team Members:} Chijioke Okogwu and David\\
+    \textbf{Instructor:} Professor Zhen Zeng
+\end{center}
+
+\vspace{4pt}
+
+\section*{1. Project Objective}
+
+This project aims to partially reproduce the findings
+of Goyal et al.~\cite{goyal2023}, who investigated
+mimicry attacks against provenance graph host intrusion
+detection systems (Prov-HIDS). We focus on Pagoda,
+one of the detection systems evaluated in the original
+study.
+
+Our objective is to determine whether mimicry-modified
+attack graphs are less likely to be detected than
+unmodified attack graphs. This is relevant to network
+and systems security because intrusion detection
+mechanisms must remain effective against adversaries
+who deliberately disguise malicious behavior as
+legitimate system activity.
+
+\section*{2. Methodology}
+
+We used the researchers' publicly released implementation
+and provenance graph datasets~\cite{repository}.
+The experimental environment consisted of Windows 11,
+Python 3.11.9, PyTorch running on CPU, and 16 GB RAM.
+We installed the required Python dependencies and
+prepared CSV graph files using custom extraction scripts.
+
+We first conducted a small pilot to verify that the
+Pagoda pipeline could execute successfully. We then
+performed two experiments using different amounts of
+benign training data: five graphs and the full set of
+71 available benign training graphs.
+
+For both configurations, we evaluated five original
+attack graphs and five mimicry-evasion graphs.
+We also implemented a separate evaluation script
+to test five previously unseen benign graphs using
+the saved Pagoda scoring artifacts and thresholds.
+
+During implementation, we addressed dependency
+configuration, dataset extraction, intermediate
+artifact management, and interpretation of Pagoda's
+output counters. We preserved the original detection
+implementation and added scripts for dataset preparation
+and held-out evaluation.
+
+\section*{3. Results}
+
+Table~\ref{tab:results} summarizes the experimental
+outcomes.
+
+\begin{table}[h]
+\centering
+\small
+\caption{Pagoda reproduction results}
+\label{tab:results}
+\begin{tabular}{p{2.95in}cc}
+\toprule
+\textbf{Evaluation metric}
+& \textbf{5 train}
+& \textbf{71 train}\\
+\midrule
+Original attacks detected
+& 5/5 & 5/5\\
+
+Mimicry-evasion graphs detected
+& 5/5 & 0/5\\
+
+Mimicry-evasion graphs escaping detection
+& 0/5 & 5/5\\
+
+Training benign graphs flagged
+& 0/5 & 0/71\\
+
+Held-out benign graphs incorrectly flagged
+& 5/5 & 5/5\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+With five benign training graphs, Pagoda detected
+both the original attacks and the mimicry-modified
+graphs. However, after increasing the benign training
+set to 71 graphs, Pagoda continued detecting all five
+original attacks while failing to detect all five
+mimicry-evasion graphs.
+
+This qualitatively supports the original paper's
+central finding that mimicry attacks can evade
+provenance-based intrusion detection~\cite{goyal2023}.
+Our experiment demonstrated this behavior for Pagoda
+on a smaller subset, rather than reproducing the
+full study's quantitative evaluation.
+
+Importantly, all five held-out benign graphs were
+incorrectly flagged as attacks under our evaluation
+procedure. The training-benign counts in
+Table~\ref{tab:results} are in-sample observations
+and should not be interpreted as independent
+false-positive rates.
+
+\section*{4. Discussion}
+
+Our results suggest that Pagoda's response to
+mimicry-modified attacks can vary with the training
+configuration. Increasing the benign training set
+from five to 71 graphs coincided with a change
+in mimicry detection from 5/5 to 0/5. However,
+this comparison alone does not establish causation.
+
+The most significant limitation was the 100\%
+false-positive rate observed on five held-out benign
+graphs. All five were flagged by the graph-level
+threshold. This may reflect differences between
+our evaluation procedure and the original experimental
+protocol, including threshold selection or scoring.
+
+Another limitation is that the original Pagoda
+implementation uses attack scores during threshold
+calibration. Consequently, detection results for
+those same attack graphs are not fully independent.
+Our evaluation covered only five original attacks,
+five evasion graphs, and five held-out benign graphs,
+limiting generalizability.
+
+Overall, we successfully executed Pagoda and partially
+reproduced the paper's central mimicry-evasion behavior.
+However, we could not establish reliable overall
+detection performance. The project highlighted the
+importance of independent evaluation data, threshold
+calibration, and careful interpretation of security
+detection metrics.
+
+\clearpage
+
+\section*{References}
+
+\begin{thebibliography}{9}
+
+\bibitem{goyal2023}
+A. Goyal et al.,
+``Sometimes, You Aren't What You Do:
+Mimicry Attacks against Provenance Graph Host
+Intrusion Detection Systems,''
+\textit{Network and Distributed System Security
+Symposium (NDSS)}, 2023.
+\url{https://www.ndss-symposium.org/ndss-paper/sometimes-you-arent-what-you-do-mimicry-attacks-against-provenance-graph-host-intrusion-detection-systems/}
+
+\bibitem{repository}
+STS Lab,
+\textit{Mimicry Provenance Generator},
+original research implementation and datasets.
+\url{https://bitbucket.org/sts-lab/mimicry-provenance-generator}
+
+\bibitem{ourrepo}
+CS 790 Group 4,
+\textit{Mimicry Attack Reproduction},
+experimental scripts and results, 2026.
+\url{https://github.com/Williamokogwu/cs790-mimicry-reproduction}
+
+\end{thebibliography}
+
+\end{document}
