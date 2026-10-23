@@ -1,0 +1,189 @@
+CS 790 MIDTERM — PAGODA LIVE DEMONSTRATION GUIDE
+================================================
+Project: Partial reproduction of "Sometimes, You Aren't What You Do: Mimicry Attacks against Provenance Graph Host Intrusion Detection Systems" (NDSS 2023)
+Presenters: Group 4
+
+DEMO OVERVIEW (ABOUT 8 MINUTES TOTAL)
+-------------------------------------
+We will present TWO live demonstrations:
+1. Original Pagoda attack and mimicry-evasion detection (measured rerun: 26.84 seconds).
+2. Our held-out benign evaluation (measured run: 30.60 seconds).
+
+The goal is to show both sides of detector performance: whether Pagoda catches attacks and whether it incorrectly flags normal activity. 
+These are prepared reruns, potentially reusing previously saved artifacts, not necessarily fresh training from scratch.
+
+BEFORE THE PRESENTATION
+-----------------------
+- Use the Windows laptop containing the original repository, Python virtual environment, and extracted CSV datasets.
+- Open PowerShell. Ensure the projector shows PowerShell text at a readable size.
+- Keep a copy of the saved results as backup in case a live run fails.
+- Do not delete cached files or retrain just before presenting.
+- Run all commands from the paths shown below. The following commands assume the folder structure used in our experiments.
+
+OPENING (ABOUT 45 SECONDS)
+--------------------------
+SAY:
+"Our project partially reproduces a study of mimicry attacks against provenance-graph intrusion detection systems. 
+We use the researchers' released Pagoda implementation and prepared datasets. A provenance graph represents relationships 
+    among system activities, such as processes accessing files or communicating over networks. 
+Our question is whether Pagoda detects original attacks and whether modified, mimicry-evasion graphs can avoid detection. 
+We also test how it handles previously unseen benign graphs."
+
+SETUP COMMAND — NAVIGATE TO THE REPOSITORY
+------------------------------------------
+RUN:
+Set-Location "C:\Users\Chijioke\Desktop\cs 790 Midterm Project\mimicry-provenance-generator"
+
+EXPLAIN:
+"Set-Location changes the PowerShell working directory to our local copy of the researchers' repository. 
+It contains Pagoda's code, our experiment folders, and the Python virtual environment."
+
+OPTIONAL: SHOW THE DATASET COUNTS (ABOUT 45 SECONDS)
+---------------------------------------------------
+RUN:
+(Get-ChildItem experiment\batch71\train -Filter *.csv).Count
+(Get-ChildItem experiment\batch5\attack -Filter *.csv).Count
+(Get-ChildItem experiment\batch5\evasion -Filter *.csv).Count
+
+EXPECTED OUTPUT:
+71
+5
+5
+
+EXPLAIN:
+"Get-ChildItem lists files in a folder; the CSV filter selects graph files; Count gives the number of files. 
+We use 71 benign graphs for training, five original attack graphs, and five mimicry-evasion graphs. The 71-graph folder only contains training files because we reuse the attack and evasion files prepared for the five-graph experiment. We did not create the attacks ourselves; the graphs came from the released dataset."
+
+DEMO 1 — ORIGINAL PAGODA DETECTION (ABOUT 3 MINUTES)
+--------------------------------------------------
+RUN THESE THREE COMMANDS, IN ORDER:
+
+Push-Location experiment\pagoda-batch71
+
+..\..\.venv\Scripts\python.exe ..\..\pagoda\main.py ..\batch71\train ..\batch5\attack ..\batch5\evasion
+
+Pop-Location
+
+COMMAND MEANINGS:
+- Push-Location temporarily enters the pagoda-batch71 experiment directory, where Pagoda can read/write experiment artifacts, and remembers the previous directory.
+- ..\..\.venv\Scripts\python.exe launches the project's virtual-environment Python.
+- ..\..\pagoda\main.py is the original Pagoda program.
+- ..\batch71\train supplies 71 benign training graphs.
+- ..\batch5\attack supplies five original attack graphs.
+- ..\batch5\evasion supplies five mimicry-evasion graphs.
+- Pop-Location returns to the original repository directory.
+- ".." means the parent folder; "..\.." means two folders up.
+
+BEFORE RUNNING, SAY:
+"First, we run the original Pagoda detector. Its training data consists of 71 benign provenance graphs. 
+We then test five original attacks and five mimicry-evasion graphs. The detector builds or reuses its frequency-based model and thresholds, scores activity paths and graphs, and reports how many samples were flagged."
+
+PREVIOUSLY OBSERVED OUTPUT (CHECK ACTUAL LIVE OUTPUT):
+fpr: 0
+tpr: 5
+evasion: 0
+
+EXPLAIN THE RESULTS:
+"These labels are counts in this implementation, not percentages. 
+The fpr value of zero refers to the benign training graphs evaluated by this program; it is not an independent false-positive rate. 
+The tpr value of five means all five original attack graphs were detected. The evasion value of zero means none of the five evasion graphs were detected. 
+Therefore, all five selected mimicry-evasion graphs escaped detection in this 71-graph configuration."
+
+IMPORTANT QUALIFICATION:
+"This is a partial reproduction on five selected attack and evasion graphs, not proof that all attacks evade Pagoda. 
+The released program's graph threshold calibration also uses attack scores, so our attack detection figure is not a fully independent test."
+
+IF ASKED ABOUT THE THRESHOLD:
+"The graph threshold in our 71-graph experiment was about 0.1237. A graph-level anomaly score above that threshold is flagged at graph level. 
+Pagoda also has a separate path-level detection check. 
+The threshold changed from about 0.1038 in the five-training-graph experiment, but we cannot say that threshold change alone caused the different evasion result."
+
+DEMO 2 — HELD-OUT BENIGN EVALUATION (ABOUT 3 MINUTES)
+---------------------------------------------------
+ENSURE YOU ARE BACK IN THE ORIGINAL REPOSITORY DIRECTORY AFTER Pop-Location.
+
+RUN:
+.\.venv\Scripts\python.exe experiment\evaluate_heldout71.py
+
+COMMAND MEANING:
+- .\.venv\Scripts\python.exe launches Python in the project's virtual environment.
+- experiment\evaluate_heldout71.py is our additional evaluation script, not the researchers' original main.py.
+- It evaluates five benign graphs not included in the 71-graph training set using the saved model/scoring configuration.
+
+BEFORE RUNNING, SAY:
+"Detecting attacks is not enough to establish that an intrusion detector works reliably. 
+It must also avoid raising alarms on normal activity. Our second demonstration evaluates five benign graphs that were not used for training. 
+This is our own additional evaluation using the released scoring code and the saved 71-graph configuration."
+
+PREVIOUSLY OBSERVED RESULTS (ACTUAL TERMINAL FORMATTING MAY DIFFER):
+Held-out benign graphs: 5
+False positives: 5/5
+Held-out false-positive rate: 100.00%
+
+EXPLAIN:
+"All five previously unseen benign graphs were flagged as suspicious in our custom evaluation. 
+Their graph anomaly scores were approximately 0.443 to 0.470, above the graph threshold of about 0.1237. 
+These are false positives: the graphs are labeled benign, but the evaluator classifies them as suspicious."
+
+IMPORTANT QUALIFICATION:
+"A 100 percent false-positive rate on only five held-out samples does not mean Pagoda has a 100 percent false-positive rate in general. 
+Our evaluation procedure may differ from the original paper's protocol. 
+This is an observed limitation of our particular setup, not a universal claim about the detector."
+
+IF A DtypeWarning APPEARS:
+"Pandas is warning that one CSV column contains mixed data types. 
+The warning did not stop our previous runs, so it is not itself a detection result or a fatal error."
+
+CLOSING (ABOUT 45–60 SECONDS)
+----------------------------
+SAY:
+"Our reproduction found that Pagoda detected all five original attack graphs but missed all five selected mimicry-evasion graphs when using 71 benign training graphs. 
+That qualitatively supports the paper's central concern: attackers may disguise malicious activity within provenance data. 
+However, our additional held-out evaluation also flagged five out of five normal graphs. 
+This demonstrates why we must examine both missed attacks, called false negatives, and incorrect alerts on normal activity, called false positives. 
+Because we tested only a small subset and used a custom held-out evaluation, our conclusions are limited to this setup."
+
+QUESTIONS AND SHORT ANSWERS
+---------------------------
+Q: Did you write Pagoda yourselves?
+A: No. We reused the researchers' released detector and added dataset-preparation and evaluation scripts.
+
+Q: Did you generate the mimicry attacks?
+A: No. We used the released evasion graphs. We have not independently confirmed one-to-one matching between every attack and evasion file.
+
+Q: Why five attack and evasion graphs?
+A: To keep a reproducible midterm experiment manageable while troubleshooting and comparing training configurations. 
+The released dataset contains 100 attack and 100 evasion graph files; we evaluated a subset.
+
+Q: Why does batch71 have only a train folder?
+A: We changed the benign training set to 71 graphs while reusing the same five attack and five evasion files from batch5, holding those test inputs fixed.
+
+Q: What are model artifacts?
+A: Saved intermediate outputs such as frequency data, thresholds, or cached computations used in subsequent evaluation. 
+Our timed runs may reuse them.
+
+Q: Why is evasion: 0 a successful attack outcome?
+A: It is the count of evasion graphs detected. Zero detected out of five means all five escaped detection.
+
+Q: Does more benign training always improve attack detection?
+A: No. It changes the learned normal-pattern representation and potentially the scores and thresholds. 
+We observed different results but did not isolate the cause.
+
+Q: Why did training fpr: 0 differ from the held-out false-positive result?
+A: The original output concerns training data, while our extra script evaluates previously unseen benign graphs. 
+Generalization to unseen data is a different test, and our protocol may also differ from the paper's.
+
+Q: How long will the commands take?
+A: We measured about 26.84 seconds for the main Pagoda rerun and 30.60 seconds for the held-out evaluator on our laptop. Live execution times may vary.
+
+BACKUP PLAN
+-----------
+If a command fails or takes too long, show the previously saved experiment result files and explain the expected output without claiming that the live execution succeeded. 
+Preserve the original files and cached artifacts; do not delete or retrain them during the presentation.
+
+FINAL REMINDER
+--------------
+Two live demonstrations, not two separate research projects:
+1. Pagoda detects 5/5 original attacks and 0/5 evasion graphs.
+2. Our evaluator flags 5/5 unseen benign graphs.
+Together they illustrate missed malicious activity and false alarms on normal activity.
